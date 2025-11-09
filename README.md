@@ -1,51 +1,59 @@
-# Welcome to your Expo app 👋
+# expo-mcp
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo Router + React Native で構築したフロントエンド完結の ToDo リストアプリです。SwiftUI/Native Tabs など Expo SDK 54 の最新機能を試しつつ、ローカルのみでタスク管理が完結します。
 
-## Get started
+## 主な特徴
+- **オフライン対応**: タスクはメモリ＋AsyncStorage に保存し、起動時に自動復元
+- **Native Tabs**: `expo-router/unstable-native-tabs` を利用した Liquid Glass 風のタブバー
+- **SwiftUI コンポーネント**: `@expo/ui` 実験的導入でネイティブ UI を一部描画
+- **タスク操作**: 追加・編集・完了切替・削除、完了タスクの集計を提供
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+## セットアップ
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Development Build (必須)
+Native Tabs と `@expo/ui` は Expo Go では動作しません。以下の手順で **prebuild → 開発ビルド** を行ってください。
 
-## Learn more
+```bash
+# ネイティブプロジェクト生成 (初回のみ、設定変更時も再実行)
+npx expo prebuild
 
-To learn more about developing your project with Expo, look at the following resources:
+# iOS シミュレータ (例: iPhone 17 Pro)
+npx expo run:ios --device "iPhone 17 Pro"
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Android エミュレータ
+npx expo run:android
+```
 
-## Join the community
+> iOS 開発ビルド実行時は Xcode での初回署名設定が必要になる場合があります。
 
-Join our community of developers creating universal apps.
+その後は Metro バンドルを起動してホットリロードできます。
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# expo-mcp
+```bash
+npx expo start
+```
+
+## プロジェクト構成
+- `app/` … Expo Router ルート。`(tabs)` 以下にタブ構成 (`index.tsx` / `explore.tsx` / `search.tsx`)
+- `components/` … タスク UI や SwiftUI ブリッジ
+- `context/` … `TasksProvider` (タスク状態・永続化)
+- `storage/` … AsyncStorage ラッパー
+- `types/` … タスクモデル定義
+
+## タスクワークフロー
+1. `TasksProvider` が起動時に AsyncStorage から同期
+2. `TaskComposer` でタスク追加（必須: タイトル）
+3. `TaskItem` で完了・編集・削除操作
+4. `Summary` タブで統計・完了一覧を表示
+
+## 開発メモ
+- SwiftUI (`@expo/ui`) は β 版のため、重要操作は RN コンポーネントで実装
+- Native Tabs の `role="search"` で iOS の検索アイコン位置調整
+- 変更後は `npm run lint` で静的チェック
+
+## リンク
+- Expo Router Native Tabs: https://docs.expo.dev/router/advanced/native-tabs/
+- Expo UI (SwiftUI): https://docs.expo.dev/guides/expo-ui-swift-ui/
+- AsyncStorage: https://react-native-async-storage.github.io/async-storage/

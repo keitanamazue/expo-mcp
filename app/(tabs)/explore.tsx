@@ -1,112 +1,183 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { CompletionMeter } from "@/components/swift-ui/completion-meter";
+import { TaskEditModal } from "@/components/tasks/task-edit-modal";
+import { TaskList } from "@/components/tasks/task-list";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useTasks } from "@/hooks/use-tasks";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import type { Task } from "@/types/task";
+import { useMemo, useState } from "react";
+import { Pressable, SafeAreaView, StyleSheet, View } from "react-native";
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+export default function SummaryScreen() {
+  const { tasks, completedTasks, updateTask, deleteTask, clearCompleted } =
+    useTasks();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-export default function TabTwoScreen() {
+  const tintColor = useThemeColor({}, "tint");
+
+  const totalTasks = tasks.length;
+  const completionRate =
+    totalTasks === 0
+      ? 0
+      : Math.round((completedTasks.length / totalTasks) * 100);
+  const latestCompleted = useMemo(() => {
+    if (completedTasks.length === 0) return null;
+    return [...completedTasks].sort((a, b) => {
+      const aTime = a.completedAt ? Date.parse(a.completedAt) : 0;
+      const bTime = b.completedAt ? Date.parse(b.completedAt) : 0;
+      return bTime - aTime;
+    })[0];
+  }, [completedTasks]);
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <ThemedView style={styles.flex}>
+      <SafeAreaView style={styles.flex}>
+        <ThemedView style={styles.container}>
+          <ThemedText type="title">Summary</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            完了済みのタスクや進捗を振り返りましょう
+          </ThemedText>
+
+          <View style={styles.cards}>
+            <InsightCard
+              label="完了率"
+              value={`${completionRate}%`}
+              tintColor={tintColor}
+              description="全タスクに対する完了割合"
+            />
+            <InsightCard
+              label="完了済み"
+              value={`${completedTasks.length}`}
+              tintColor={tintColor}
+              description="これまでに完了したタスク数"
+            />
+            <InsightCard
+              label="最新の完了"
+              value={latestCompleted ? latestCompleted.title : "—"}
+              tintColor={tintColor}
+              description={
+                latestCompleted?.completedAt
+                  ? new Date(latestCompleted.completedAt).toLocaleString()
+                  : "まだ完了したタスクはありません"
+              }
+            />
+          </View>
+
+          <CompletionMeter completionRate={completionRate} />
+
+          <View style={styles.listHeader}>
+            <ThemedText type="subtitle">完了済みタスク</ThemedText>
+            {completedTasks.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={clearCompleted}
+                style={styles.clearLinkButton}
+              >
+                <ThemedText style={styles.clearLink}>
+                  完了済みをすべて削除
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.listWrapper}>
+            <TaskList
+              tasks={completedTasks}
+              emptyTitle="まだ完了したタスクはありません"
+              emptySubtitle="タスクを完了するとここに表示されます。"
+              onEditTask={(task) => setEditingTask(task)}
+              onDeleteTask={(task) => deleteTask(task.id)}
+            />
+          </View>
+        </ThemedView>
+      </SafeAreaView>
+
+      <TaskEditModal
+        visible={Boolean(editingTask)}
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSubmit={updateTask}
+        onDelete={(taskId) => deleteTask(taskId)}
+      />
+    </ThemedView>
   );
 }
 
+type InsightCardProps = {
+  label: string;
+  value: string;
+  description: string;
+  tintColor: string;
+};
+
+const InsightCard = ({
+  label,
+  value,
+  description,
+  tintColor,
+}: InsightCardProps) => (
+  <View style={[styles.card, { borderColor: `${tintColor}33` }]}>
+    <ThemedText style={styles.cardLabel}>{label}</ThemedText>
+    <ThemedText style={[styles.cardValue, { color: tintColor }]}>
+      {value}
+    </ThemedText>
+    <ThemedText style={styles.cardDescription}>{description}</ThemedText>
+  </View>
+);
+
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  flex: {
+    flex: 1,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 16,
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
+  cards: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  card: {
+    flexBasis: "48%",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 6,
+  },
+  cardLabel: {
+    fontSize: 13,
+    opacity: 0.7,
+  },
+  cardValue: {
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  cardDescription: {
+    fontSize: 12,
+    opacity: 0.7,
+    lineHeight: 16,
+  },
+  listHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  clearLinkButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearLink: {
+    color: "#dc2626",
+    fontSize: 13,
+  },
+  listWrapper: {
+    flex: 1,
   },
 });
